@@ -4,6 +4,7 @@ Click==7.0
 configparser==3.5.0
 enum34==1.1.6
 Flask==1.0.2
+Flask-SocketIO==3.1.0
 futures==3.2.0
 isort==4.3.4
 itsdangerous==1.1.0
@@ -13,6 +14,8 @@ MarkupSafe==1.1.0
 mccabe==0.6.1
 psycopg2-binary==2.7.6.1
 pylint==1.9.3
+python-engineio==3.0.0
+python-socketio==2.1.0
 singledispatch==3.4.0.3
 six==1.11.0
 SQLAlchemy==1.2.14

@@ -3,14 +3,15 @@
 
 import os
 import traceback
-import click
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session, flash
+from flask_socketio import SocketIO
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = b'secret'
+socketio = SocketIO(app)
 
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
@@ -107,16 +108,8 @@ def signup():
     else:
         return render_template('signup.html')
 
-if __name__ == '__main__':
-    # Handles command line interface.
-    @click.command()
-    @click.option('--debug', is_flag=True)
-    @click.option('--threaded', is_flag=True)
-    @click.argument('host', default='0.0.0.0')
-    @click.argument('port', default=8111, type=int)
-
-    def run(host, port, debug, threaded):
-        print "Running on %s:%d" % (host, port)
-        app.run(host=host, port=port, debug=debug, threaded=threaded)
-
-    run()
+@app.route('/p', methods=['POST'])
+def party():
+    post_pname = str(request.form['pname'])
+    post_interests = str(request.form['interests'])
+    return redirect('/')
