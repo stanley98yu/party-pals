@@ -10,11 +10,11 @@ from flask import Flask, request, render_template, g, redirect, Response, sessio
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
-app.secret_key = b'Secret!'
+app.secret_key = b'secret'
 
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
-DB_PASSWORD = 'Secret!'
+DB_PASSWORD = 'secret'
 DB_SERVER = 'w4111.cisxo09blonu.us-east-1.rds.amazonaws.com'
 DATABASE_URI = 'postgresql://' + DB_USER + ':' + DB_PASSWORD + '@' + DB_SERVER + '/w4111'
 
@@ -25,13 +25,18 @@ engine = create_engine(DATABASE_URI)
 engine.execute("""DROP TABLE IF EXISTS test;""")
 engine.execute("""
                CREATE TABLE IF NOT EXISTS test (
-                   uid int,
-                   username text,
+                   uid serial,
+                   username text NOT NULL,
+                   password text NOT NULL,
+                   email text NOT NULL,
+                   date_of_birth date NOT NULL,
                    PRIMARY KEY (uid)
                );
                """)
-engine.execute("""INSERT INTO test(uid, username) VALUES
-                  (0, 'stanley'), (1, 'yang'), (2, 'eugene');""")
+engine.execute("""INSERT INTO test(username, password, email, date_of_birth) VALUES
+                  ('stanley', '1', 'stanley.yu@columbia.edu', '1998-12-01'),
+                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04'),
+                  ('eugene', '1', 'ew2493@columbia.edu', '1993-04-05');""")
 
 @app.before_request
 def before_request():
@@ -54,46 +59,53 @@ def teardown_request(exception):
 @app.route('/')
 def index():
     if not session.get('logged_in'):
-        # Database query example.
-        cursor = g.conn.execute("SELECT * FROM test")
-        for result in cursor:
-            print list(result)
-        cursor.close()
         return render_template('login.html')
     else:
-        return render_template('index.html')
-
-# # Flask uses Jinja templates, which is an extension to HTML where you can
-# # pass data to a template and dynamically generate HTML based on the data
-# # (you can think of it as simple PHP)
-# # documentation: https://realpython.com/blog/python/primer-on-jinja-templating/
-# #
-# # You can see an example template in templates/index.html
-# # https://docs.sqlalchemy.org/en/latest/core/tutorial.html
-#     context = dict(data = names)
-#     return render_template('index.html', **context)
+        context = dict(username=session['username'])
+        return render_template('index.html', **context)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.form['password'] == 'password' and request.form['username'] == 'admin':
-        session['logged_in'] = True
+    if request.method == 'POST':
+        post_username = str(request.form['username'])
+        post_password = str(request.form['password'])
+
+        cursor = g.conn.execute("""
+                                SELECT * FROM test
+                                WHERE username='%s' AND password='%s'
+                                """ % (post_username, post_password))
+        if list(cursor):
+            session['logged_in'] = True
+            session['username'] = post_username
+        else:
+            flash('Wrong password!')
+        cursor.close()
+        return index()
     else:
-        flash('Wrong password!')
-    return index()
+        return render_template('login.html')
 
 @app.route("/logout")
 def logout():
     session['logged_in'] = False
     return redirect('/')
 
-# Example of adding new data to the database.
-@app.route('/add', methods=['POST'])
-def add():
-  name = request.form['username']
-  print name
-  cmd = 'INSERT INTO test(uid, username) VALUES (4, :name1),';
-  g.conn.execute(text(cmd), name1 = name);
-  return redirect('/')
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        post_username = str(request.form['username'])
+        post_password = str(request.form['password'])
+        post_email = str(request.form['email'])
+        post_dob = str(request.form['dob'])
+
+        ins = """
+              INSERT INTO test(username, password, email, date_of_birth) VALUES
+              ('%s', '%s', '%s', '%s')
+              """ % (post_username, post_password, post_email, post_dob)
+        cursor = g.conn.execute(ins)
+        cursor.close()
+        return index()
+    else:
+        return render_template('signup.html')
 
 if __name__ == '__main__':
     # Handles command line interface.
