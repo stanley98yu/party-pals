@@ -1,0 +1,21 @@
+body {
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+h1 {
+    text-align: center;
+}
+
+h3 {
+    text-align: center;
+}
+
+.signin-block {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.chat-box {
+    max-width: 500px;
+}

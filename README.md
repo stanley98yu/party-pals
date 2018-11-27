@@ -17,13 +17,17 @@ Created by Stanley Yu (sy2751) and Yang He (yh2825). Made for **COMS 4111 (Fall 
 ## Tools
 
 * Used [Flask][flask] to build and serve the web application.
+* Used [Flask-SocketIO][flasksocketio] for low latency websocket communication between the client and server.
 * Used [SQLAlchemy][sqlal] to interface between Python and the PostgreSQL database.
+* Used [Bootstrap][bootstrap] for styling CSS.
 * Used [Google Compute Engine][gce] to deploy the web application.
 
 ## Contingency Plan
 
 The contingency plan simplifies the MusicParty platform to only involve **users**, **parties**, and **songs**. Users will simply **participate** in parties and vote for which songs they want to play without specifying interests. As before, parties will only continue to play songs as long as it has at least one participant, and parties will be able to track how long participants stay in the session and what song was playing during that session.
 
+[bootstrap]: https://getbootstrap.com/
 [flask]: http://flask.pocoo.org/
+[flasksocketio]: https://flask-socketio.readthedocs.io/en/latest/
 [gce]: https://cloud.google.com/compute/
 [sqlal]: https://www.sqlalchemy.org/

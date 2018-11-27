@@ -39,7 +39,7 @@ engine.execute("""
                """)
 engine.execute("""INSERT INTO test(username, password, email, date_of_birth) VALUES
                   ('stanley', '1', 'stanley.yu@columbia.edu', '1998-12-01'),
-                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04'),""")
+                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04');""")
 
 @app.before_request
 def before_request():

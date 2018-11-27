@@ -1,16 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=yes">
   <title>Party Pals</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
-  <h1>Party Pals</h1>
-  <h3>Welcome {{ username }}!</h3>
-  <form method="POST" action="/p">
-    <input type="pname" name="pname" placeholder="Name"><br/>
-    <input type="interests" name="interests" placeholder="Interests"><br/>
-    <input type="submit" class="button" value="Start a Party!">
-  </form>
-  <a href='/logout'>Logout</a>
+  <div class="container">
+    <div class="jumbotron">
+      <h1>Party Pals</h1>
+      <h3>Welcome {{ username }}!</h3>
+    </div>
+    <div class="container signin-block">
+      <form class="form-signin" method="POST" action="/p">
+        <h2 class="form-signin-heading">Join or Create a Party!</h2>
+        <input class="form-control" type="pname" name="pname" placeholder="Name">
+        <input class="form-control" type="interests" name="interests" placeholder="Interests">
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Start a Party!</button>
+      </form>
+      <button class="btn btn-lg btn-secondary btn-block" onclick="location.href='/logout'">Logout</button>
+    </div>
+  </div>
 </body>
 </html>
