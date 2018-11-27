@@ -13,6 +13,9 @@ app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = b'secret'
 socketio = SocketIO(app)
 
+# Packages and modules.
+from server import comment
+
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
 DB_PASSWORD = 'secret'
@@ -36,8 +39,7 @@ engine.execute("""
                """)
 engine.execute("""INSERT INTO test(username, password, email, date_of_birth) VALUES
                   ('stanley', '1', 'stanley.yu@columbia.edu', '1998-12-01'),
-                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04'),
-                  ('eugene', '1', 'ew2493@columbia.edu', '1993-04-05');""")
+                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04'),""")
 
 @app.before_request
 def before_request():
@@ -54,7 +56,7 @@ def teardown_request(exception):
     """Closes the database connection at the end of every web request."""
     try:
         g.conn.close()
-    except Exception as e:
+    except:
         pass
 
 @app.route('/')
@@ -112,4 +114,12 @@ def signup():
 def party():
     post_pname = str(request.form['pname'])
     post_interests = str(request.form['interests'])
-    return redirect('/')
+
+    session['room'] = post_pname
+    return redirect('/party/' + post_pname)
+
+@app.route('/party/<room>')
+def party_room(room):
+    if not room:
+        return redirect('/')
+    return render_template('party.html', room=room)
