@@ -19,6 +19,7 @@ Created by Stanley Yu (sy2751) and Yang He (yh2825). Made for **COMS 4111 (Fall 
 * Used [Flask][flask] to build and serve the web application.
 * Used [Flask-SocketIO][flasksocketio] for low latency websocket communication between the client and server.
 * Used [SQLAlchemy][sqlal] to interface between Python and the PostgreSQL database.
+* Used [Youtube Data API V3][youtubeapi] to interact with and sync Youtube videos.
 * Used [Bootstrap][bootstrap] for styling CSS.
 * Used [Google Compute Engine][gce] to deploy the web application.
 
@@ -31,3 +32,4 @@ The contingency plan simplifies the MusicParty platform to only involve **users*
 [flasksocketio]: https://flask-socketio.readthedocs.io/en/latest/
 [gce]: https://cloud.google.com/compute/
 [sqlal]: https://www.sqlalchemy.org/
+[youtubeapi]: https://developers.google.com/youtube/

@@ -9,6 +9,19 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
   <script type="text/javascript" src="{{ url_for('static', filename='js/websocket.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/videos.js') }}"></script>
+  <script type="text/javascript">
+    var player;
+    var playlist = {{ playlist|safe }};
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        videoId: playlist[0],
+        events: {'onReady': onPlayerReady,
+                 'onStateChange': onPlayerStateChange}
+      });
+    }
+  </script>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
@@ -19,10 +32,13 @@
       <h1>Party Pals</h1>
       <h3>{{ room }}</h3>
     </div>
-    <div class="container chat-box">
-      <textarea id="chat" class="container-fluid" rows="15"></textarea>
-      <input class="form-control" id="text" placeholder="Write a comment..."/>
-      <button class="btn btn-lg btn-secondary btn-block" onclick="leave_room(); location.href='/';" type="submit">Leave Party</button>
+    <div class="row">
+      <div id="player" class="col-8"></div>
+      <div class="container chat-box col-4">
+        <textarea id="chat" class="container-fluid" rows="15"></textarea>
+        <input class="form-control" id="text" placeholder="Write a comment..."/>
+        <button class="btn btn-lg btn-secondary btn-block" onclick="leave_room(); location.href='/';" type="submit">Leave Party</button>
+      </div>
     </div>
   </div>
 </body>

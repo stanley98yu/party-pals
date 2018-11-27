@@ -8,13 +8,14 @@ from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session, flash
 from flask_socketio import SocketIO
 
+# Application and WebSocket.
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = b'secret'
 socketio = SocketIO(app)
 
-# Packages and modules.
-from server import comment
+# Modules
+from server import comment, videos
 
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
@@ -64,6 +65,8 @@ def index():
     if not session.get('logged_in'):
         return render_template('login.html')
     else:
+        # if 'credentials' not in session:
+        #     return redirect('/authorize')
         context = dict(username=session['username'])
         return render_template('index.html', **context)
 
@@ -116,10 +119,5 @@ def party():
     post_interests = str(request.form['interests'])
 
     session['room'] = post_pname
+    session['interests'] = post_interests
     return redirect('/party/' + post_pname)
-
-@app.route('/party/<room>')
-def party_room(room):
-    if not room:
-        return redirect('/')
-    return render_template('party.html', room=room)
