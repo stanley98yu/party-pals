@@ -13,7 +13,7 @@ import datetime
 
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
-DB_PASSWORD = 'secret'
+DB_PASSWORD = '1o92684o'
 DB_SERVER = 'w4111.cisxo09blonu.us-east-1.rds.amazonaws.com'
 DATABASE_URI = 'postgresql://' + DB_USER + ':' + DB_PASSWORD + '@' + DB_SERVER + '/w4111'
 
@@ -29,19 +29,6 @@ from server import comment, videos
 
 # Create table test and insert values.
 engine.execute("""DROP TABLE IF EXISTS test2, test_participate;""")
-
-engine.execute("""
-           CREATE TABLE IF NOT EXISTS test2 (
-               pid integer,
-               uid serial,
-               party_name text NOT NULL,
-               PRIMARY KEY (pid),
-               FOREIGN KEY (uid) REFERENCES users(uid)
-           );
-           """)
-engine.execute("""INSERT INTO test2(pid, uid, party_name) VALUES
-              (9990001, 99900011, 'test'),
-              (9990002, 99900010, 'test2');""")
 
 engine.execute("""
            CREATE TABLE IF NOT EXISTS test_participate (
