@@ -47,6 +47,25 @@ def party_room(room, video):
             return redirect('/')
         currVideo = playlist[0]
 
+        # Get content details of each video ID and insert into database.
+        content = youtube.videos().list(part='id,snippet,contentDetails', id=','.join(playlist)).execute()
+        for result in content['items']:
+            yid = result['id']
+            title = result['snippet']['title']
+            channel = result['snippet']['channelTitle']
+            duration = re.findall(r'\d+', result['contentDetails']['duration'])
+            length = format_duration(duration)
+
+            stmt = text("""
+                        INSERT INTO videos (vid,title,channel,length) VALUES
+                        (:vid, :title, :channel, :length) ON CONFLICT DO NOTHING
+                        """)
+            stmt = stmt.bindparams(bindparam("vid", type_=String),\
+                                   bindparam("title", type_=String),\
+                                   bindparam("channel", type_=String),\
+                                   bindparam("length", type_=String))
+            g.conn.execute(stmt, {"vid": yid, "title": title, "channel": channel, "length": length})
+
         stmt = text("""SELECT * FROM party_created
                         WHERE party_name=:party_name
                         ORDER BY pid DESC
@@ -61,8 +80,9 @@ def party_room(room, video):
             # print("pid: " + str(session['pid']))
             join_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
             session['join_time'] = join_time
+            
             # Insert into participates table.
-	    stmt = text("""
+            stmt = text("""
                         INSERT INTO participates (uid, pid, join_time)
                         VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
                         """)
@@ -92,17 +112,18 @@ def party_room(room, video):
                                    bindparam("creation_time", type_=String))
             g.conn.execute(stmt, {"uid": session['uid'], "pid": next_id, "room": room, "creation_time": session['join_time']})
 
-	    # Insert into participates table.
-	    stmt = text("""
+	        # Insert into participates table.
+            stmt = text("""
                         INSERT INTO participates (uid, pid, join_time)
-                        VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
+                        VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss')) ON CONFLICT DO NOTHING;
                         """)
             stmt = stmt.bindparams(bindparam("uid", type_=Integer),\
                                    bindparam("pid", type_=Integer),\
                                    bindparam("join_time", type_=String))
             g.conn.execute(stmt, {"uid": session['uid'], "pid": session['pid'], "join_time": session['join_time']})
+            
             # Insert into tags table.
-	    for i in session['interests'].split(','):
+            for i in session['interests'].split(','):
                 stmt = text("""
                             INSERT INTO tags (pid, keyword) VALUES
                             (:pid, :keyword) ON CONFLICT DO NOTHING;
@@ -110,7 +131,7 @@ def party_room(room, video):
                 stmt = stmt.bindparams(bindparam("pid", type_=Integer), \
                                        bindparam("keyword", type_=String))
                 if re.match(r'\w+', i):
-		    if len(i) > 20:
+                    if len(i) > 20:
                         intrst = i[0:20]
                     else:
                         intrst = i
@@ -133,24 +154,6 @@ def party_room(room, video):
                 g.conn.execute("""INSERT INTO playlist_generates(plid, keyword) VALUES
                                   (%d, '%s')""" % (next_id, key))
 
-            # Get content details of each video ID and insert into database.
-            content = youtube.videos().list(part='id,snippet,contentDetails', id=','.join(playlist)).execute()
-            for result in content['items']:
-                yid = result['id']
-                title = result['snippet']['title']
-                channel = result['snippet']['channelTitle']
-                duration = re.findall(r'\d+', result['contentDetails']['duration'])
-                length = format_duration(duration)
-
-                stmt = text("""
-                            INSERT INTO videos (vid,title,channel,length) VALUES
-                            (:vid, :title, :channel, :length) ON CONFLICT DO NOTHING
-                            """)
-                stmt = stmt.bindparams(bindparam("vid", type_=String),\
-                                       bindparam("title", type_=String),\
-                                       bindparam("channel", type_=String),\
-                                       bindparam("length", type_=String))
-                g.conn.execute(stmt, {"vid": yid, "title": title, "channel": channel, "length": length})
 
             # Insert into playlist_contains table.
             for v in playlist:
