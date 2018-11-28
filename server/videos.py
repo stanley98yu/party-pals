@@ -2,9 +2,14 @@
 """Manages interactions with videos using the Youtube Data API."""
 
 import os
+import re
 import json
+import datetime
+import time
 from flask import Flask, render_template, redirect, url_for, session, request, g
 from flask_socketio import emit
+from sqlalchemy import *
+from sqlalchemy.pool import NullPool
 import google_auth_oauthlib.flow
 import google.oauth2.credentials
 from googleapiclient.discovery import build
@@ -24,11 +29,32 @@ def party_room(room):
     # # Load the credentials from the session.
     # credentials = google.oauth2.credentials.Credentials(
     #     **session['credentials'])
-    cursor = g.conn.execute("""SELECT * FROM test2
-                               WHERE party_name='%s'
-                               ORDER BY pid DESC
-                               LIMIT 1""" % (room))
-    if list(cursor):
+    # cursor = g.conn.execute("""SELECT * FROM test2
+    #                            WHERE party_name='%s'
+    #                            ORDER BY pid DESC
+    #                            LIMIT 1""" % (room))
+    stmt = text("""SELECT * FROM test2
+                    WHERE party_name=:party_name
+                    ORDER BY pid DESC
+                    LIMIT 1""")
+    stmt = stmt.bindparams(bindparam("party_name", type_=String))
+    cursor = g.conn.execute(stmt, {"party_name": room})
+    if cursor:
+        for result in cursor:
+            pid = result['pid']
+            session['pid'] = pid
+        print("uid: " + str(session['uid']))
+        print("pid: " + str(session['pid']))
+        join_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+        session['join_time'] = join_time
+        stmt = text("""
+                    INSERT INTO test_participate (uid, pid, join_time)
+                    VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
+                    """)
+        stmt = stmt.bindparams(bindparam("uid", type_=Integer),\
+                               bindparam("pid", type_=Integer),\
+                               bindparam("join_time", type_=String))
+        g.conn.execute(stmt, {"uid": session['uid'], "pid": session['pid'], "join_time": session['join_time']})
         context = dict(room=room, playlist=json.dumps([]), host=0)
         cursor.close()
         return render_template('party.html', **context)
@@ -38,16 +64,29 @@ def party_room(room):
         resp = youtube.search().list(
             part='snippet',
             q="|".join(session['interests'].split(',')),
-            maxResults=5
+            maxResults=1
         ).execute()
-        playlist = []
+        playlist = set()
         for search_result in resp.get('items', []):
             # Checks the result is a video and not a playlist or live video.
             if search_result['id']['kind'] == 'youtube#video' and search_result['snippet']['liveBroadcastContent'] == 'none':
-                playlist.append(search_result['id']['videoId'])
+                playlist.add(search_result['id']['videoId'])
+        
+        # Get content details of each video ID and insert into database.
+        content = youtube.videos().list(part='id,snippet,contentDetails', id=','.join(playlist)).execute()
+        for result in content['items']:
+            yid = result['id']
+            title = result['snippet']['title']
+            channel = result['snippet']['channelTitle']
+            duration = re.findall(r'\d+', result['contentDetails']['duration'])
+            length = format_duration(duration)
+
+            cursor = g.conn.execute("""INSERT INTO videos (vid,title,channel,length) VALUES
+                                       ('%s', '%s', '%s', '%s') ON CONFLICT DO NOTHING"""
+                                       % (yid, title, channel, length))
 
         # Return user to homepage if no results found using interests listed.
-        context = dict(room=room, playlist=json.dumps(playlist), host=1)
+        context = dict(room=room, playlist=json.dumps(list(playlist)), host=1)
         if playlist:
             cursor.close()
             return render_template('party.html', **context)
@@ -59,6 +98,20 @@ def party_room(room):
 def sync(msg):
     """Syncs up video players within the same room."""
     emit('update-vid', msg, room=msg['room'])
+
+@socketio.on('vote', namespace='/party')
+def vote(msg):
+    """Tally votes for a specific video."""
+    print 'Voted!'
+
+def format_duration(duration):
+    """Format duration into interval format."""
+    if len(duration) == 1:
+        return '0:0:' + duration[0]
+    elif len(duration) == 2:
+        return '0:' + duration[0] + ':' + duration[1]
+    else:
+        return ':'.join(duration)
 
 @app.route('/authorize')
 def authorize():

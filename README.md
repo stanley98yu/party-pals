@@ -3,9 +3,6 @@ PartyPals
 
 PartyPals is a recommendation and video-sharing application that allows users to form groups, also known as parties, to stream videos together. Users can share Youtube videos within parties, listen to them together, and vote for what kinds of music they want to share with others. The application's main entities are **users**, **parties**, **videos**, and **interests**. On the app, users can create a party by choosing a video to start playing and **tagging** the party with interests that describe what kind of video they want to share (i.e. surfing, Eminem, or memes). A party must have at least one **participant** to be active and continue **playing** songs. The app will recommend a **playlist** of videos that are **generated** using the keywords from a party's interests. Unlike live streams or other video-sharing apps, parties do not have a livestreamer; the videos played will be entirely based on **number of votes** for the video in the recommended playlist. Data collected from video plays such as the most popular videos associated with certain interests will be pushed to the database to influence future video recommendations for other parties with similar interests. To help grow communities within parties, users can also post comments, which **belong to** the user who authors it and the video playing when the comment is written. With data on how users interact through comments, we can see how users are responding to Youtube, how they like to discuss videos, and how much they are enjoying a truly democratic video-sharing platform.
 
-New Changes in Part 3:
-* Added 'password' column to 'users' table.
-
 Created by Stanley Yu (sy2751) and Yang He (yh2825). Made for **COMS 4111 (Fall '18)**.
 
 ## Tools
@@ -16,6 +13,7 @@ Created by Stanley Yu (sy2751) and Yang He (yh2825). Made for **COMS 4111 (Fall 
 * Used [Youtube Data API V3][youtubeapi] to interact with and sync Youtube videos.
 * Used [Bootstrap][bootstrap] for styling CSS.
 * Used [Google Compute Engine][gce] to deploy the web application.
+* Referenced https://github.com/miguelgrinberg/Flask-SocketIO-Chat for the real-time chat system.
 
 ## ER-Diagram Assumptions (Outdated)
 

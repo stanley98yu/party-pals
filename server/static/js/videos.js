@@ -16,6 +16,8 @@ function onPlayerStateChange(event) {
   currVideo = playlist[event.target.getPlaylistIndex()];
   if(event.data == YT.PlayerState.ENDED) {
     event.target.playVideo();
+    var btn = document.getElementById('like-btn');
+    btn.removeAttribute('disabled'); // Reset like button.
   }
 }
 
@@ -25,3 +27,10 @@ function syncVideo() {
   socket.emit('syncvideo', {time: payload, room: room});
   window.setTimeout(syncVideo, 1000);
 }
+
+// Disable like button to only allow once per video.
+$(document).on('click', '#like-btn', function (e) {
+  socket.emit('vote', {})
+  var btn = $(e.target);
+  btn.attr('disabled', 'disabled');
+});

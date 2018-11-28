@@ -11,6 +11,10 @@ h3 {
     text-align: center;
 }
 
+.container {
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+}
 .signin-block {
     max-width: 400px;
     margin: 0 auto;
@@ -18,4 +22,9 @@ h3 {
 
 .chat-box {
     max-width: 500px;
+}
+
+#like-btn {
+    margin: 0 auto;
+    max-width: 400px;
 }
