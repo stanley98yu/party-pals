@@ -3,6 +3,7 @@
 
 import os
 import traceback
+import re
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session, flash
@@ -27,20 +28,7 @@ engine = create_engine(DATABASE_URI) # Create an Engine object that connects to 
 from server import comment, videos
 
 # Create table test and insert values.
-engine.execute("""DROP TABLE IF EXISTS test2, test, test_participate;""")
-engine.execute("""
-               CREATE TABLE IF NOT EXISTS test (
-                   uid serial,
-                   username text NOT NULL,
-                   password text NOT NULL,
-                   email text NOT NULL,
-                   date_of_birth date NOT NULL,
-                   PRIMARY KEY (uid)
-               );
-               """)
-engine.execute("""INSERT INTO test(username, password, email, date_of_birth) VALUES
-                  ('stanley', '1', 'stanley.yu@columbia.edu', '1998-12-01'),
-                  ('yang', '1', 'yh2825@columbia.edu', '1997-03-04');""")
+engine.execute("""DROP TABLE IF EXISTS test2, test_participate;""")
 
 engine.execute("""
            CREATE TABLE IF NOT EXISTS test2 (
@@ -48,12 +36,12 @@ engine.execute("""
                uid serial,
                party_name text NOT NULL,
                PRIMARY KEY (pid),
-               FOREIGN KEY (uid) REFERENCES test(uid)
+               FOREIGN KEY (uid) REFERENCES users(uid)
            );
            """)
 engine.execute("""INSERT INTO test2(pid, uid, party_name) VALUES
-              (0001, 1, 'test'),
-              (0002, 2, 'test2');""")
+              (9990001, 99900011, 'test'),
+              (9990002, 99900010, 'test2');""")
 
 engine.execute("""
            CREATE TABLE IF NOT EXISTS test_participate (
@@ -96,26 +84,20 @@ def login():
     if request.method == 'POST':
         post_username = str(request.form['username'])
         post_password = str(request.form['password'])
-
-        # cursor = g.conn.execute("""
-        #                        SELECT * FROM test
-        #                        WHERE username='%s' AND password='%s'
-        #                        """ % (post_username, post_password))
-        
-	stmt = text("""
-                    SELECT * FROM test
+        stmt = text("""
+                    SELECT * FROM users
                     where username = :username AND password = :password
                     """)
         stmt = stmt.bindparams(bindparam("username", type_=String), bindparam("password", type_=String))
-        cursor = g.conn.execute(stmt, {"username": post_username, "password": post_password})	
-
-	if len(cursor.fetchall()):
+        cursor = g.conn.execute(stmt, {"username": post_username, "password": post_password})
+        res = cursor.fetchall()
+        if len(res):
             session['logged_in'] = True
             session['username'] = post_username
-	    for result in cursor:
-		uid = result['uid']
-	    	session['uid'] = uid
-		print("uid" + str(uid))
+            for r in res:
+                uid = r['uid']
+                session['uid'] = uid
+                print "uid" + str(uid)
         else:
             flash('Wrong password!')
         cursor.close()
@@ -135,26 +117,28 @@ def signup():
         post_password = str(request.form['password'])
         post_email = str(request.form['email'])
         post_dob = str(request.form['dob'])
+        if not re.match(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', post_dob):
+            flash('Bad birthdate!')
+            return render_template('signup.html')
 
-        #ins = """
-        #      INSERT INTO test(username, password, email, date_of_birth) VALUES
-        #      ('%s', '%s', '%s', '%s')
-        #      """ % (post_username, post_password, post_email, post_dob)
-        #cursor = g.conn.execute(ins)
+        cursor = g.conn.execute("""SELECT uid FROM users ORDER BY uid DESC LIMIT 1""")
+        uid = cursor.fetchone()['uid'] + 1
+
         stmt = text("""
-                    INSERT INTO test(username, password, email, date_of_birth) VALUES
-                    (:username, :password, :email, :dob)
+                    INSERT INTO users(uid, username, password, email, date_of_birth) VALUES
+                    (:uid, :username, :password, :email, :dob)
                     """)
-        stmt = stmt.bindparams(bindparam("username", type_=String), \
+        stmt = stmt.bindparams(bindparam("uid", type_=Integer), \
+                               bindparam("username", type_=String), \
                                bindparam("password", type_=String), \
                                bindparam("email", type_=String), \
                                bindparam("dob", type_=String))
-        cursor = g.conn.execute(stmt, {"username": post_username, \
+        cursor = g.conn.execute(stmt, {"uid": uid, \
+                                       "username": post_username, \
                                        "password": post_password, \
                                        "email": post_email, \
                                        "dob": post_dob})
-
-	cursor.close()
+        cursor.close()
         return index()
     else:
         return render_template('signup.html')
@@ -163,7 +147,36 @@ def signup():
 def party():
     post_pname = str(request.form['pname'])
     post_interests = str(request.form['interests'])
-    
+
+    # Insert interests into database.
+    cursor = g.conn.execute("""SELECT interest_id FROM interest ORDER BY interest_id DESC LIMIT 1""")
+    next_id = cursor.fetchone()['interest_id'] + 1
+    for i in post_interests.split(','):
+        stmt = text("""
+                    INSERT INTO interest (interest_id, category, keyword) VALUES
+                    (:next_id, :category, :keyword) ON CONFLICT DO NOTHING;
+                    """)
+        stmt = stmt.bindparams(bindparam("next_id", type_=Integer), \
+                               bindparam("category", type_=String), \
+                               bindparam("keyword", type_=String))
+        if len(i) > 20:
+            intrst = i[0:20]
+        else:
+            intrst = i
+        cursor = g.conn.execute(stmt, {"next_id": next_id, "category": "other", "keyword": intrst})
+        next_id += 1
+    cursor.close()
+
+    # Get uid from database.
+    stmt = text("""
+                SELECT * FROM users
+                where username = :username
+                """)
+    stmt = stmt.bindparams(bindparam("username", type_=String))
+    cursor = g.conn.execute(stmt, {"username": session['username']})
+    res = cursor.fetchone()
+    session['uid'] = res['uid']
+
     session['room'] = post_pname
     session['interests'] = post_interests
     return redirect('/party/' + post_pname)

@@ -30,7 +30,7 @@ function syncVideo() {
 
 // Disable like button to only allow once per video.
 $(document).on('click', '#like-btn', function (e) {
-  socket.emit('vote', {})
+  socket.emit('vote', {plid: plid, video: currVideo})
   var btn = $(e.target);
   btn.attr('disabled', 'disabled');
 });
