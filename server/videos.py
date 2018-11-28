@@ -77,6 +77,8 @@ def party_room(room, video):
             # return render_template('party.html', **context)
         else: # Create new party.
             # Insert into party_created table.
+            join_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+            session['join_time'] = join_time
             cursor = g.conn.execute("""SELECT pid FROM party_created ORDER BY pid DESC LIMIT 1""")
             next_id = cursor.fetchone()['pid'] + 1
             stmt = text("""
