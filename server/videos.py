@@ -5,14 +5,18 @@ import os
 import json
 from flask import Flask, render_template, redirect, url_for, session, request, g
 from flask_socketio import emit
+from sqlalchemy import *
+from sqlalchemy.pool import NullPool
 import google_auth_oauthlib.flow
 import google.oauth2.credentials
 from googleapiclient.discovery import build
 from server import socketio, app, engine
+import time
+import datetime
 
 CLIENT_SECRETS_FILE = "client_secret.json"
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
-DEVELOPER_KEY = 'secret'
+DEVELOPER_KEY = 'AIzaSyBHJuPLIexUXa6TJktAT_nXG_tS3LjuUeg'
 YOUTUBE_API_SERVICE_NAME = 'youtube'
 YOUTUBE_API_VERSION = 'v3'
 
@@ -24,13 +28,36 @@ def party_room(room):
     # # Load the credentials from the session.
     # credentials = google.oauth2.credentials.Credentials(
     #     **session['credentials'])
-    cursor = g.conn.execute("""SELECT * FROM test2
-                               WHERE party_name='%s'
-                               ORDER BY pid DESC
-                               LIMIT 1""" % (room))
-    if list(cursor):
+    # cursor = g.conn.execute("""SELECT * FROM test2
+    #                          WHERE party_name='%s'
+    #                           ORDER BY pid DESC
+    #                           LIMIT 1""" % (room))
+    
+    stmt = text("""SELECT * FROM test2
+                WHERE party_name=:party_name
+                ORDER BY pid DESC
+                LIMIT 1""")
+    stmt = stmt.bindparams(bindparam("party_name", type_=String))
+    cursor = g.conn.execute(stmt, {"party_name": room})
+
+    if cursor:
         context = dict(room=room, playlist=json.dumps([]), host=0)
-        cursor.close()
+        for result in cursor:
+	    pid = result['pid']
+	    session['pid'] = pid
+        print("uid: " + str(session['uid']))
+	print("pid: " + str(session['pid']))
+	join_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+	session['join_time'] = join_time
+    	stmt = text("""
+        	        INSERT INTO test_participate (uid, pid, join_time)
+                	VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
+               	    """)
+    	stmt = stmt.bindparams(bindparam("uid", type_=Integer),\
+                               bindparam("pid", type_=Integer),\
+                               bindparam("join_time", type_=String))
+    
+    	g.conn.execute(stmt, {"uid": session['uid'], "pid": session['pid'], "join_time": session['join_time']})
         return render_template('party.html', **context)
     else:
         # Create a Youtube service object and request video search results by interest keywords.

@@ -7,17 +7,19 @@ from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session, flash
 from flask_socketio import SocketIO
+import time
+import datetime
 
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
-DB_PASSWORD = 'secret'
+DB_PASSWORD = '1o92684o'
 DB_SERVER = 'w4111.cisxo09blonu.us-east-1.rds.amazonaws.com'
 DATABASE_URI = 'postgresql://' + DB_USER + ':' + DB_PASSWORD + '@' + DB_SERVER + '/w4111'
 
 # Application and Socket.io.
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
-app.secret_key = b'secret'
+app.secret_key = 'secret'
 socketio = SocketIO(app)
 engine = create_engine(DATABASE_URI) # Create an Engine object that connects to the DBAPI and the database.
 
@@ -25,7 +27,7 @@ engine = create_engine(DATABASE_URI) # Create an Engine object that connects to 
 from server import comment, videos
 
 # Create table test and insert values.
-engine.execute("""DROP TABLE IF EXISTS test2, test;""")
+engine.execute("""DROP TABLE IF EXISTS test2, test, test_participate;""")
 engine.execute("""
                CREATE TABLE IF NOT EXISTS test (
                    uid serial,
@@ -52,6 +54,14 @@ engine.execute("""
 engine.execute("""INSERT INTO test2(pid, uid, party_name) VALUES
               (0001, 1, 'test'),
               (0002, 2, 'test2');""")
+
+engine.execute("""
+           CREATE TABLE IF NOT EXISTS test_participate (
+               pid integer,
+               uid serial,
+               join_time timestamp without time zone
+           );
+           """)
 
 @app.before_request
 def before_request():
@@ -87,13 +97,25 @@ def login():
         post_username = str(request.form['username'])
         post_password = str(request.form['password'])
 
-        cursor = g.conn.execute("""
-                                SELECT * FROM test
-                                WHERE username='%s' AND password='%s'
-                                """ % (post_username, post_password))
-        if list(cursor):
+        # cursor = g.conn.execute("""
+        #                        SELECT * FROM test
+        #                        WHERE username='%s' AND password='%s'
+        #                        """ % (post_username, post_password))
+        
+	stmt = text("""
+                    SELECT * FROM test
+                    where username = :username AND password = :password
+                    """)
+        stmt = stmt.bindparams(bindparam("username", type_=String), bindparam("password", type_=String))
+        cursor = g.conn.execute(stmt, {"username": post_username, "password": post_password})	
+
+	if cursor:
             session['logged_in'] = True
             session['username'] = post_username
+	    for result in cursor:
+		uid = result['uid']
+	    	session['uid'] = uid
+		print("uid" + str(uid))
         else:
             flash('Wrong password!')
         cursor.close()
@@ -114,12 +136,25 @@ def signup():
         post_email = str(request.form['email'])
         post_dob = str(request.form['dob'])
 
-        ins = """
-              INSERT INTO test(username, password, email, date_of_birth) VALUES
-              ('%s', '%s', '%s', '%s')
-              """ % (post_username, post_password, post_email, post_dob)
-        cursor = g.conn.execute(ins)
-        cursor.close()
+        #ins = """
+        #      INSERT INTO test(username, password, email, date_of_birth) VALUES
+        #      ('%s', '%s', '%s', '%s')
+        #      """ % (post_username, post_password, post_email, post_dob)
+        #cursor = g.conn.execute(ins)
+        stmt = text("""
+                    INSERT INTO test(username, password, email, date_of_birth) VALUES
+                    (:username, :password, :email, :dob)
+                    """)
+        stmt = stmt.bindparams(bindparam("username", type_=String), \
+                               bindparam("password", type_=String), \
+                               bindparam("email", type_=String), \
+                               bindparam("dob", type_=String))
+        cursor = g.conn.execute(stmt, {"username": post_username, \
+                                       "password": post_password, \
+                                       "email": post_email, \
+                                       "dob": post_dob})
+
+	cursor.close()
         return index()
     else:
         return render_template('signup.html')
