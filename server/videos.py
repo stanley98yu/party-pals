@@ -3,11 +3,12 @@
 
 import os
 import json
-from flask import Flask, render_template, redirect, url_for, session, request
+from flask import Flask, render_template, redirect, url_for, session, request, g
+from flask_socketio import emit
 import google_auth_oauthlib.flow
 import google.oauth2.credentials
 from googleapiclient.discovery import build
-from server import socketio, app
+from server import socketio, app, engine
 
 CLIENT_SECRETS_FILE = "client_secret.json"
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
@@ -17,24 +18,47 @@ YOUTUBE_API_VERSION = 'v3'
 
 @app.route('/party/<room>')
 def party_room(room):
-    if not room:
+    if not room or not session.get('logged_in'):
         return redirect('/')
 
     # # Load the credentials from the session.
     # credentials = google.oauth2.credentials.Credentials(
     #     **session['credentials'])
-    # Example of a Youtube search result.
-    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
-    resp = youtube.search().list(
-        part='snippet',
-        q=str(session['interests']),
-        maxResults=5
-    ).execute()
-    playlist = []
-    for search_result in resp.get('items', []):
-        playlist.append(search_result['id']['videoId'])
-    print playlist
-    return render_template('party.html', room=room, playlist=json.dumps(playlist))
+    cursor = g.conn.execute("""SELECT * FROM test2
+                               WHERE party_name='%s'
+                               ORDER BY pid DESC
+                               LIMIT 1""" % (room))
+    if list(cursor):
+        context = dict(room=room, playlist=json.dumps([]), host=0)
+        cursor.close()
+        return render_template('party.html', **context)
+    else:
+        # Create a Youtube service object and request video search results by interest keywords.
+        youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)
+        resp = youtube.search().list(
+            part='snippet',
+            q="|".join(session['interests'].split(',')),
+            maxResults=5
+        ).execute()
+        playlist = []
+        for search_result in resp.get('items', []):
+            # Checks the result is a video and not a playlist or live video.
+            if search_result['id']['kind'] == 'youtube#video' and search_result['snippet']['liveBroadcastContent'] == 'none':
+                playlist.append(search_result['id']['videoId'])
+
+        # Return user to homepage if no results found using interests listed.
+        context = dict(room=room, playlist=json.dumps(playlist), host=1)
+        if playlist:
+            cursor.close()
+            return render_template('party.html', **context)
+        else:
+            cursor.close()
+            return redirect('/')
+
+@socketio.on('syncvideo', namespace='/party')
+def sync(msg):
+    """Syncs up video players within the same room."""
+    emit('update-vid', msg, room=msg['room'])
 
 @app.route('/authorize')
 def authorize():

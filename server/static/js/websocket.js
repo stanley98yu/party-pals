@@ -1,9 +1,13 @@
 var socket;
 $(document).ready(function(){
-  socket = io.connect('http://' + document.domain + ':' + location.port + '/chat');
+  socket = io.connect('http://' + document.domain + ':' + location.port + '/party');
 
   socket.on('connect', function() {
     socket.emit('joined', {});
+
+    socket.once('disconnect', function() {
+      socket.emit('left', {});
+    });
   });
   
   socket.on('status', function(data) {
@@ -14,6 +18,10 @@ $(document).ready(function(){
   socket.on('message', function(data) {
     $('#chat').val($('#chat').val() + data.username + ': ' + data.msg + '\n');
     $('#chat').scrollTop($('#chat')[0].scrollHeight);
+  });
+
+  socket.on('update-vid', function(data) {
+    player.seekTo(data['time']);
   });
 
   $('#text').keypress(function(e) {

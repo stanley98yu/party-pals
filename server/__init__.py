@@ -8,26 +8,24 @@ from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, session, flash
 from flask_socketio import SocketIO
 
-# Application and WebSocket.
-tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
-app = Flask(__name__, template_folder=tmpl_dir)
-app.secret_key = b'secret'
-socketio = SocketIO(app)
-
-# Modules
-from server import comment, videos
-
 # The database URI should be in the format: postgresql://<db-user>:<pass>@<server-ip>/<db-name>
 DB_USER = 'sy2751'
 DB_PASSWORD = 'secret'
 DB_SERVER = 'w4111.cisxo09blonu.us-east-1.rds.amazonaws.com'
 DATABASE_URI = 'postgresql://' + DB_USER + ':' + DB_PASSWORD + '@' + DB_SERVER + '/w4111'
 
-# Create an Engine object that connects to the DBAPI and the database.
-engine = create_engine(DATABASE_URI)
+# Application and Socket.io.
+tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+app = Flask(__name__, template_folder=tmpl_dir)
+app.secret_key = b'secret'
+socketio = SocketIO(app)
+engine = create_engine(DATABASE_URI) # Create an Engine object that connects to the DBAPI and the database.
+
+# Modules
+from server import comment, videos
 
 # Create table test and insert values.
-engine.execute("""DROP TABLE IF EXISTS test;""")
+engine.execute("""DROP TABLE IF EXISTS test2, test;""")
 engine.execute("""
                CREATE TABLE IF NOT EXISTS test (
                    uid serial,
@@ -41,6 +39,19 @@ engine.execute("""
 engine.execute("""INSERT INTO test(username, password, email, date_of_birth) VALUES
                   ('stanley', '1', 'stanley.yu@columbia.edu', '1998-12-01'),
                   ('yang', '1', 'yh2825@columbia.edu', '1997-03-04');""")
+
+engine.execute("""
+           CREATE TABLE IF NOT EXISTS test2 (
+               pid integer,
+               uid serial,
+               party_name text NOT NULL,
+               PRIMARY KEY (pid),
+               FOREIGN KEY (uid) REFERENCES test(uid)
+           );
+           """)
+engine.execute("""INSERT INTO test2(pid, uid, party_name) VALUES
+              (0001, 1, 'test'),
+              (0002, 2, 'test2');""")
 
 @app.before_request
 def before_request():
@@ -117,7 +128,7 @@ def signup():
 def party():
     post_pname = str(request.form['pname'])
     post_interests = str(request.form['interests'])
-
+    
     session['room'] = post_pname
     session['interests'] = post_interests
     return redirect('/party/' + post_pname)
