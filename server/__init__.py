@@ -146,12 +146,13 @@ def party():
         stmt = stmt.bindparams(bindparam("next_id", type_=Integer), \
                                bindparam("category", type_=String), \
                                bindparam("keyword", type_=String))
-        if len(i) > 20:
-            intrst = i[0:20]
-        else:
-            intrst = i
-        cursor = g.conn.execute(stmt, {"next_id": next_id, "category": "other", "keyword": intrst})
-        next_id += 1
+    	if re.match(r'\w+', i):    
+	    if len(i) > 20:
+     	        intrst = i[0:20]
+            else:
+                intrst = i
+            cursor = g.conn.execute(stmt, {"next_id": next_id, "category": "other", "keyword": intrst})
+	    next_id += 1
     cursor.close()
 
     # Get uid from database.

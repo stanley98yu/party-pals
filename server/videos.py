@@ -57,19 +57,20 @@ def party_room(room, video):
         rooms = cursor.fetchall()
         if len(rooms): # Party already exists with playlist.
             session['pid'] = rooms[0]['pid']
-            print("uid: " + str(session['uid']))
-            print("pid: " + str(session['pid']))
+            # print("uid: " + str(session['uid']))
+            # print("pid: " + str(session['pid']))
             join_time = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
             session['join_time'] = join_time
-            stmt = text("""
-                        INSERT INTO test_participate (uid, pid, join_time)
+            # Insert into participates table.
+	    stmt = text("""
+                        INSERT INTO participates (uid, pid, join_time)
                         VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
                         """)
             stmt = stmt.bindparams(bindparam("uid", type_=Integer),\
                                    bindparam("pid", type_=Integer),\
                                    bindparam("join_time", type_=String))
             g.conn.execute(stmt, {"uid": session['uid'], "pid": session['pid'], "join_time": session['join_time']})
-
+	    
             session['playlist'] = playlist
             session['room'] = room
             return redirect('/party/' + room + '/' + currVideo)
@@ -90,6 +91,30 @@ def party_room(room, video):
                                    bindparam("room", type_=String),\
                                    bindparam("creation_time", type_=String))
             g.conn.execute(stmt, {"uid": session['uid'], "pid": next_id, "room": room, "creation_time": session['join_time']})
+
+	    # Insert into participates table.
+	    stmt = text("""
+                        INSERT INTO participates (uid, pid, join_time)
+                        VALUES (:uid, :pid, to_timestamp(:join_time, 'YYYY-MM-DD hh24:mi:ss'))
+                        """)
+            stmt = stmt.bindparams(bindparam("uid", type_=Integer),\
+                                   bindparam("pid", type_=Integer),\
+                                   bindparam("join_time", type_=String))
+            g.conn.execute(stmt, {"uid": session['uid'], "pid": session['pid'], "join_time": session['join_time']})
+            # Insert into tags table.
+	    for i in session['interests'].split(','):
+                stmt = text("""
+                            INSERT INTO tags (pid, keyword) VALUES
+                            (:pid, :keyword) ON CONFLICT DO NOTHING;
+                            """)
+                stmt = stmt.bindparams(bindparam("pid", type_=Integer), \
+                                       bindparam("keyword", type_=String))
+                if re.match(r'\w+', i):
+		    if len(i) > 20:
+                        intrst = i[0:20]
+                    else:
+                        intrst = i
+                    cursor = g.conn.execute(stmt, {"pid": next_id, "keyword": intrst})
 
             # Insert into playlist_generates table.
             cursor = g.conn.execute("""SELECT plid FROM playlist_generates ORDER BY plid DESC LIMIT 1""")
