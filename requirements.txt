@@ -34,7 +34,7 @@ python-engineio==3.0.0
 python-socketio==2.1.0
 requests==2.20.1
 requests-oauthlib==1.0.0
-rsa==4.0
+rsa==4.7
 singledispatch==3.4.0.3
 six==1.11.0
 SQLAlchemy==1.2.14
