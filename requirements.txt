@@ -7,7 +7,7 @@ Click==7.0
 configparser==3.5.0
 dnspython==1.15.0
 enum34==1.1.6
-eventlet==0.24.1
+eventlet==0.31.0
 Flask==1.0.2
 Flask-SocketIO==3.1.0
 futures==3.2.0
